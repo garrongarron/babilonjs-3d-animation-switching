@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="utf-8" />
+    <title>Babylon - Getting Started</title>
+    <!--- Link to the last version of BabylonJS --->
+    <script src="https://preview.babylonjs.com/babylon.js"></script>
+    <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <style>
+        html,
+        body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #renderCanvas {
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+        p{
+            position: fixed;
+            display: block;
+            width: 100%;
+            bottom: 0em;
+            text-align: center;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    
+    <canvas id="renderCanvas"></canvas>
+    <p>Presiona la tecla [w] para caminar</p>
+    <script>
+        window.addEventListener('DOMContentLoaded', function () {
+            // get the canvas DOM element
+            var canvas = document.getElementById('renderCanvas');
+            let animations = []
+            let current = 0
+            let last = null
+            var createScene = function () {
+                // Create a scene.
+                var scene = new BABYLON.Scene(engine);
+
+                // Append glTF model to scene.
+                BABYLON.SceneLoader.Append("", "woman3.gltf", scene, function (scene) {
+                    animations = scene.animationGroups.map(animation => {
+                        animation.play(true)
+                        return { animation, weight: 0 }
+                    })
+                    animations[0].weight = 0
+                    scene.onBeforeAnimationsObservable.add(() => {
+                        let speed = 5
+                        let v1 = Math.round((animations[current].weight * 100) + speed) / 100
+                        animations[current].weight = BABYLON.Scalar.Clamp(v1, 0, 1)
+                        animations[current].animation.setWeightForAllAnimatables(animations[current].weight);
+
+                        if (last != null && last !== current) {
+                            let v0 = Math.round((animations[last].weight * 100) - speed) / 100
+                            animations[last].weight = BABYLON.Scalar.Clamp(v0, 0, 1)
+                            animations[last].animation.setWeightForAllAnimatables(animations[last].weight);
+                        }
+                    });
+
+                    scene.createDefaultCameraOrLight(true, true, true);
+
+                    // The default camera looks at the back of the asset.
+                    // Rotate the camera by 180 degrees to the front of the asset.
+                    scene.activeCamera.alpha += Math.PI;
+                });
+
+                return scene;
+            };
+            document.addEventListener('keydown', (e) => {
+                if(last != current) {
+                    last = current
+                    console.log(current, last);
+                }
+                if (e.keyCode === 87) {
+                    current = 1
+                    console.log('caminar');
+                }
+                console.log(e.keyCode);
+            })
+            document.addEventListener('keyup', (e) => {
+                if(last != current) {
+                    last = current
+                }
+                if (e.keyCode === 87) {
+                    current = 0
+                    console.log('detenerse');
+                }
+            })
+
+            // load the 3D engine
+            var engine = new BABYLON.Engine(canvas, true, {
+                preserveDrawingBuffer: true,
+                stencil: true
+            });
+
+
+            // call the createScene function
+            var scene = createScene();
+
+            // run the render loop
+            setTimeout(() => {
+                engine.runRenderLoop(function () {
+                    if (scene) {
+                        scene.render();
+                    }
+                });
+            }, 1000*1);
+
+            // the canvas/window resize event handler
+            window.addEventListener('resize', function () {
+                engine.resize();
+            });
+        });
+
+    </script>
+</body>
+</html>
